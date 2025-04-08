@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
 	}
 
 	incoming_checksum=0;
-	coid = name_open("myapp",0);
+	coid = name_open(SERVER_NAME,0);
 
 	if (coid == -1)
 	{ //was there an error attaching to server?
@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
 
 
 	printf("Sending pulse: %d\n", 3);
-	status = MsgSendPulse(coid, -1, 3, 0xdeadc0de);
+	status = MsgSendPulse(coid, -1, CKSUM_PULSE_CODE, 0xdeadc0de);
 	if (status == -1)
 	{
 		perror("MsgSendPulse");

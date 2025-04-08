@@ -16,28 +16,36 @@ struct csum_t
 	uint16_t msg_type;
 	char string_to_cksum[MAX_STRING_LEN +1];
 };
-typedef struct
-{
-	//always the first element
-	uint16_t msg_type;
-	char string_to_cksum[MAX_STRING_LEN + 1]; //ptr to string we're sending to server, to make it
-} cksum_msg_t; //easy, server assumes a max of 256 chars!!!!
+
+//OLD CODE
+//typedef struct
+//{
+//	//always the first element
+//	uint16_t msg_type;
+//	char string_to_cksum[MAX_STRING_LEN + 1]; //ptr to string we're sending to server, to make it
+//} cksum_msg_t; //easy, server assumes a max of 256 chars!!!!
+//
+//
+//typedef union
+//{
+//	//always the first element
+//	uint16_t msg_type;
+//	struct _pulse pulse;
+//	struct csum_t csum;
+//}rx_msg_t;
 
 
-typedef union
-{
-	//always the first element
-	uint16_t msg_type;
-	struct _pulse pulse;
-	struct csum_t csum;
-}rx_msg_t;
-
+//this union is needed because we will be sending
+//both pulses and messages thru the buffer
 typedef union
 {
 	uint16_t msg_type;
 	struct _pulse pulse;
 } hdr_union;
 
+
+//the first member is always the msgtype/pulse code
+//len is the payload length
 typedef struct
 {
 	hdr_union msg_type;

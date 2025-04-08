@@ -41,7 +41,7 @@ int main(void) {
 //		exit(EXIT_FAILURE);
 //	}
 
-	attach = name_attach(NULL, "myapp", 0);
+	attach = name_attach(NULL, SERVER_NAME, 0);
 
 	if (attach == NULL) {
 		puts("error attaching myapp");
@@ -66,7 +66,7 @@ int main(void) {
 		if (rcvid == MSG_TYPE_PULSE) {
 			printf("We got a pulse value = %d\n", rx_msg.msg_type.pulse.code);
 			switch (rx_msg.msg_type.pulse.code) {
-			case 3:
+			case CKSUM_PULSE_CODE:
 				puts("We got a pulse!!\n");
 				printf("value : %x\n", rx_msg.msg_type.pulse.value.sival_int);
 				break;
