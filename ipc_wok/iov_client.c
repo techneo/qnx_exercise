@@ -17,18 +17,18 @@
 #include <string.h>
 #include <sys/dispatch.h>
 #include <sys/neutrino.h>
-#include "msg_def.h"
+#include "iov_server.h"
 
 int main(int argc, char* argv[])
 {
 	int coid; //Connection ID to server
-	rx_msg_t msg;
+	//rx_msg_t msg;
 	int incoming_checksum; //space for server's reply
 	int status; //status return value used for MsgSend
 
 	iov_t my_multipart_msg[2];
-	int mmsg_len;
 	char mmsg[50];
+	iov_header_t msg_hdr;
 
 
 	if (argc != 2)
@@ -50,18 +50,24 @@ int main(int argc, char* argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	msg.msg_type = CKSUM_MSG_TYPE;
-	strlcpy(mmsg, argv[1], sizeof(mmsg));
+	//msg.msg_type = CKSUM_MSG_TYPE;
+	strcpy(mmsg, argv[1]);
 
-	my_multipart_msg[0].iov_base = &mmsg_len;
-	my_multipart_msg[0].iov_len = sizeof(mmsg_len);
+//	my_multipart_msg[0].iov_base = &mmsg_len;
+//	my_multipart_msg[0].iov_len = sizeof(mmsg_len);
+//
+//	my_multipart_msg[1].iov_base = &mmsg;
+//	my_multipart_msg[1].iov_len=sizeof(mmsg);
 
-	my_multipart_msg[1].iov_base = &mmsg;
-	my_multipart_msg[1].iov_len=sizeof(mmsg);
+	msg_hdr.msg_type.msg_type=CKSUM_MSG_TYPE;
+	msg_hdr.len=sizeof(mmsg);
+
+	SETIOV(&my_multipart_msg[0],&msg_hdr,sizeof(msg_hdr));
+	SETIOV(&my_multipart_msg[1],&mmsg,sizeof(mmsg));
 
 
-	printf("Sending string: %s\n", msg.csum.string_to_cksum);
 
+	printf("Sending pulse: %d\n", 3);
 	status = MsgSendPulse(coid, -1, 3, 0xdeadc0de);
 	if (status == -1)
 	{
@@ -71,6 +77,8 @@ int main(int argc, char* argv[])
 
 //	status = MsgSend(coid, &msg, sizeof(msg), &incoming_checksum,
 //			sizeof(incoming_checksum));
+	printf("Sending string: %s\n", mmsg);
+
 	status = MsgSendvs(coid,my_multipart_msg,2,&incoming_checksum,sizeof(incoming_checksum));
 	if (status == -1)
 	{ //was there an error sending to server?

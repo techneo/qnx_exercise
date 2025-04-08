@@ -18,7 +18,7 @@
 #include <process.h>
 #include <sys/dispatch.h>
 
-#include "msg_def.h"  //layout of msg's should be defined by a struct, here's its definition
+#include "iov_server.h"  //layout of msg's should be defined by a struct, here's its definition
 
 int
 calculate_checksum(char *text);
@@ -27,10 +27,12 @@ int main(void) {
 	//int chid;
 	//int pid;
 	rcvid_t rcvid;
-	rx_msg_t msg;
+	//rx_msg_t msg;
 	int status;
 	int checksum;
 	name_attach_t *attach;
+	iov_header_t rx_msg;
+	char *ptr;
 
 	//PUT CODE HERE to create a channel, store channel id in the chid variable
 //	chid = ChannelCreate(0);
@@ -39,10 +41,9 @@ int main(void) {
 //		exit(EXIT_FAILURE);
 //	}
 
-	attach = name_attach(NULL,"myapp",0);
+	attach = name_attach(NULL, "myapp", 0);
 
-	if (attach==NULL)
-	{
+	if (attach == NULL) {
 		puts("error attaching myapp");
 		return EXIT_FAILURE;
 	}
@@ -53,24 +54,26 @@ int main(void) {
 
 	while (1) {
 		//PUT CODE HERE to receive msg from client
-		rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
+		puts("Waiting for message :\n");
+		rcvid = MsgReceive(attach->chid, &rx_msg, sizeof(rx_msg), NULL);
 
 		if (rcvid == MSG_TYPE_INVALID) { //was there an error receiving msg?
 			perror("MsgReceive"); //look up errno code and print
 			exit(EXIT_FAILURE); //give up
 		}
-		printf("message rcvid %ld\n",rcvid);
+		printf("message rcvid %ld\n", rcvid);
 		//pulse handler
 		if (rcvid == MSG_TYPE_PULSE) {
-			printf("We got a pulse value = %d\n",msg.pulse.code);
-			switch (msg.pulse.code) {
+			printf("We got a pulse value = %d\n", rx_msg.msg_type.pulse.code);
+			switch (rx_msg.msg_type.pulse.code) {
 			case 3:
 				puts("We got a pulse!!\n");
-				printf("value : %x\n", msg.pulse.value.sival_int);
+				printf("value : %x\n", rx_msg.msg_type.pulse.value.sival_int);
 				break;
 			case _PULSE_CODE_DISCONNECT:
 				puts("We got a disconnect pulse!!\n");
-				ConnectDetach(msg.pulse.scoid);
+				ConnectDetach(rx_msg.msg_type.pulse.scoid);
+				break;
 			default:
 				puts("We got a invalid pulse!!\n");
 				break;
@@ -78,17 +81,27 @@ int main(void) {
 
 		} else {
 			//PUT CODE HERE to calculate the check sum by calling calculate_checksum()
-			if (msg.msg_type == CKSUM_MSG_TYPE) {
-				checksum = calculate_checksum(msg.csum.string_to_cksum);
+			if (rx_msg.msg_type.msg_type == CKSUM_MSG_TYPE) {
+
+				printf("received header : %d\n", rx_msg.len);
+				ptr = (char*) malloc(rx_msg.len * sizeof(char));
+				if (ptr == NULL) {
+
+					puts("no memory");
+				}
+				MsgRead(rcvid, ptr, rx_msg.len, sizeof(rx_msg));
+				checksum = calculate_checksum(ptr);
 				printf("received message CKSUM_MSG_TYPE\n ");
+				printf("from client : %s\n", ptr);
 				//PUT CODE HERE TO reply to client with checksum, store the return status in status
 				status = MsgReply(rcvid, EOK, &checksum, sizeof(checksum));
-				printf("sending checksum %d\n",checksum);
+				printf("sending checksum %d\n", checksum);
+				free(ptr);
 				if (status == -1) {
 					perror("MsgReply");
 				}
 			} else {
-				printf("We got a invalid message type %d\n", msg.msg_type);
+				//printf("We got a invalid message type %d\n", msg.msg_type);
 				if (MsgError(rcvid, ENOSYS) == -1) {
 					perror("Msg Failed"); //look up errno code and print
 					//exit(EXIT_FAILURE); //give up

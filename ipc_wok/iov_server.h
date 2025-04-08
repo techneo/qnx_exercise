@@ -32,6 +32,19 @@ typedef union
 	struct csum_t csum;
 }rx_msg_t;
 
+typedef union
+{
+	uint16_t msg_type;
+	struct _pulse pulse;
+} hdr_union;
+
+typedef struct
+{
+	hdr_union msg_type;
+	//uint16_t msg_type;
+	uint8_t len;
+} iov_header_t;
+
 // checksum reply is an int
 
 // If you are sharing a target with other people, please customize these server names
