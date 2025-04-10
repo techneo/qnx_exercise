@@ -29,8 +29,19 @@ typedef union
 	//always the first element
 	uint16_t msg_type;
 	struct _pulse pulse;
+	struct sigevent event;
 	struct csum_t csum;
 }rx_msg_t;
+
+
+typedef union
+{
+	//always the first element
+	uint16_t msg_type;
+	struct _pulse pulse;
+	struct sigevent event;
+	struct csum_t csum;
+}tx_msg_t;
 
 // checksum reply is an int
 

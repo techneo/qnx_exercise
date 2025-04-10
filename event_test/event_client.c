@@ -21,12 +21,13 @@
 
 int main(int argc, char* argv[])
 {
-	int coid; //Connection ID to server
+	int server_coid; //Connection ID to server
 	int self_coid; //needed to get our own channel id
 	int chid;
 	int flags;
-	struct sigevent event;
-	rx_msg_t msg;
+	rcvid_t rcvid;
+	tx_msg_t msg;
+	rx_msg_t rmsg;
 	int incoming_checksum; //space for server's reply
 	int status; //status return value used for MsgSend
 	//int server_pid; //server's process ID
@@ -42,28 +43,50 @@ int main(int argc, char* argv[])
 //	}
 
 
+	//get a handle to the server app
+	server_coid = name_open("myapp",0);
 
-	coid = name_open("myapp",0);
+	printf("name server opened coid = %d\n",server_coid );
 
+	//Create a channel for the process
 	chid = ChannelCreate(0);
 
+	printf("chid %d, created\n",chid);
+
+	//since we are passing our own chid , we get a connection id to us
 	self_coid = ConnectAttach(0,0,chid,_NTO_SIDE_CHANNEL,flags);
 
+	printf("self coid created %d \n",self_coid);
 
-
-
-	if (coid == -1)
+	//terminate if failed
+	if (server_coid == -1)
 	{ //was there an error attaching to server?
 		perror("ConnectAttach"); //look up error code and print
-		name_close(coid);
+		name_close(server_coid);
 		exit(EXIT_FAILURE);
 	}
 
+	puts("creating pulse signal\n");
 
-	SIGEV_PULSE_INIT(&event,coid,10,PULSE_1,NULL);
 
+	SIGEV_PULSE_INIT(&msg.event,self_coid,10,PULSE_1,NULL);
 
-	name_close(coid);
+	SIGEV_MAKE_UPDATEABLE(&msg.event);
+
+	puts("MsgRegisterEvent pre\n");
+	MsgRegisterEvent(&msg.event,server_coid);
+	puts("MsgRegisterEvent post\n");
+	MsgSend(server_coid,&msg,sizeof(msg),&rmsg,sizeof(rmsg));
+	puts("MsgSend post\n");
+
+	while(1)
+	{
+		rcvid = MsgReceive(chid,&rmsg,sizeof(rmsg),NULL);
+		puts("MsgReceive post\n");
+	}
+
+	puts("name close\n");
+	name_close(server_coid);
 	return EXIT_SUCCESS;
 }
 

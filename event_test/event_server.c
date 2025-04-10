@@ -16,7 +16,9 @@
 #include <errno.h>
 #include <sys/neutrino.h>
 #include <process.h>
+#include <string.h>
 #include <sys/dispatch.h>
+#include <sys/siginfo.h>
 
 #include "msg_def.h"  //layout of msg's should be defined by a struct, here's its definition
 
@@ -24,20 +26,15 @@ int
 calculate_checksum(char *text);
 
 int main(void) {
-	//int chid;
-	//int pid;
-	rcvid_t rcvid;
-	rx_msg_t msg;
-	int status;
-	int checksum;
-	name_attach_t *attach;
 
-	//PUT CODE HERE to create a channel, store channel id in the chid variable
-//	chid = ChannelCreate(0);
-//	if (chid == -1) { //was there an error creating the channel?
-//		perror("ChannelCreate()"); //look up the errno code and print
-//		exit(EXIT_FAILURE);
-//	}
+	rcvid_t rcvid;
+	rcvid_t save_rcvid;
+	rx_msg_t msg;
+	name_attach_t *attach;
+	tx_msg_t tmsg;
+	struct sigevent save_event;
+
+
 
 	attach = name_attach(NULL,"myapp",0);
 
@@ -47,12 +44,11 @@ int main(void) {
 		return EXIT_FAILURE;
 	}
 
-//	pid = getpid(); //get our own pid
-//	printf("Server's pid: %d, chid: %d\n", pid, chid); //print our pid/chid so
-//	//client can be told where to connect
+
 
 	while (1) {
 		//PUT CODE HERE to receive msg from client
+
 		rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
 
 		if (rcvid == MSG_TYPE_INVALID) { //was there an error receiving msg?
@@ -60,42 +56,30 @@ int main(void) {
 			exit(EXIT_FAILURE); //give up
 		}
 		printf("message rcvid %ld\n",rcvid);
-		//pulse handler
-		if (rcvid == MSG_TYPE_PULSE) {
-			printf("We got a pulse value = %d\n",msg.pulse.code);
-			switch (msg.pulse.code) {
-			case 3:
-				puts("We got a pulse!!\n");
-				printf("value : %x\n", msg.pulse.value.sival_int);
-				break;
-			case _PULSE_CODE_DISCONNECT:
-				puts("We got a disconnect pulse!!\n");
-				ConnectDetach(msg.pulse.scoid);
-			default:
-				puts("We got a invalid pulse!!\n");
-				break;
-			}
 
-		} else {
-			//PUT CODE HERE to calculate the check sum by calling calculate_checksum()
-			if (msg.msg_type == CKSUM_MSG_TYPE) {
-				checksum = calculate_checksum(msg.csum.string_to_cksum);
-				printf("received message CKSUM_MSG_TYPE\n ");
-				//PUT CODE HERE TO reply to client with checksum, store the return status in status
-				status = MsgReply(rcvid, EOK, &checksum, sizeof(checksum));
-				printf("sending checksum %d\n",checksum);
-				if (status == -1) {
-					perror("MsgReply");
+
+		if(MsgVerifyEvent(rcvid,&msg.event)!=-1)
+				{
+					printf("MsgVerify in \n");
+					save_event = msg.event;
+					save_rcvid = rcvid;
+					strcpy(tmsg.csum.string_to_cksum,"0xaa555");
+					printf("MsgReply called \n");
+					MsgReply(rcvid,0,&tmsg,sizeof(tmsg));
+
 				}
-			} else {
-				printf("We got a invalid message type %d\n", msg.msg_type);
-				if (MsgError(rcvid, ENOSYS) == -1) {
-					perror("Msg Failed"); //look up errno code and print
-					//exit(EXIT_FAILURE); //give up
-				}
-			}
+
+
+		while(1)
+		{
+		printf("MsgDeliverEvent pre \n");
+		sleep(10);
+		MsgDeliverEvent(save_rcvid,&save_event);
+		printf("MsgDeliverEvent post \n");
 		}
+
 	}
+
 	return 0;
 }
 
