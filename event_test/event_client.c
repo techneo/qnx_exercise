@@ -28,19 +28,9 @@ int main(int argc, char* argv[])
 	rcvid_t rcvid;
 	tx_msg_t msg;
 	rx_msg_t rmsg;
-	int incoming_checksum; //space for server's reply
-	int status; //status return value used for MsgSend
-	//int server_pid; //server's process ID
-	//int server_chid; //server's channel ID
+//	int incoming_checksum; //space for server's reply
+//	int status; //status return value used for MsgSend
 
-//	if (argc != 2)
-//	{
-//		printf("ERROR: This program must be started with commandline arguments, for example:\n\n");
-//		printf("   client abcdefghi    \n\n");
-//		printf(" arg(abcdefghi): string to send to server\n"); //to make it
-//		//easy, let's not bother handling spaces
-//		exit(EXIT_FAILURE);
-//	}
 
 
 	//get a handle to the server app
@@ -68,19 +58,30 @@ int main(int argc, char* argv[])
 
 	puts("creating pulse signal\n");
 
-
+	//build the signal structure that has
+	//the clients self coid that goes to the server
+	//sets the priority as 10
+	//delivers the puse PULSE_1
 	SIGEV_PULSE_INIT(&msg.event,self_coid,10,PULSE_1,NULL);
 
+	//this allows the server to change the data
+	//inside the event structure
 	SIGEV_MAKE_UPDATEABLE(&msg.event);
 
 	puts("MsgRegisterEvent pre\n");
+	//subscribing to the server with the event structure we built
+	//as a secure event
 	MsgRegisterEvent(&msg.event,server_coid);
 	puts("MsgRegisterEvent post\n");
+	//send message to the server process via its coid
+	//message contains the event.
+	//expecting a reply on the rmsg
 	MsgSend(server_coid,&msg,sizeof(msg),&rmsg,sizeof(rmsg));
 	puts("MsgSend post\n");
-
+	//unblocked
 	while(1)
 	{
+		//receive events and wait blocked till the event arrives
 		rcvid = MsgReceive(chid,&rmsg,sizeof(rmsg),NULL);
 		puts("MsgReceive post\n");
 	}

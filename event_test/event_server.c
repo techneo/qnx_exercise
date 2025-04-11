@@ -35,9 +35,10 @@ int main(void) {
 	struct sigevent save_event;
 
 
-
+	//register on the name space
 	attach = name_attach(NULL,"myapp",0);
 
+	//exit on error
 	if (attach==NULL)
 	{
 		puts("error attaching myapp");
@@ -47,33 +48,45 @@ int main(void) {
 
 
 	while (1) {
-		//PUT CODE HERE to receive msg from client
-
+		//receive msg from client
 		rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
 
+		//check message
 		if (rcvid == MSG_TYPE_INVALID) { //was there an error receiving msg?
 			perror("MsgReceive"); //look up errno code and print
 			exit(EXIT_FAILURE); //give up
 		}
 		printf("message rcvid %ld\n",rcvid);
 
-
+		//check if we received a request from the client for a event notification
 		if(MsgVerifyEvent(rcvid,&msg.event)!=-1)
 				{
 					printf("MsgVerify in \n");
+					//save the event details to send back
+					//once we are ready to send
 					save_event = msg.event;
+					//the rcvid is the way to talk to a client
 					save_rcvid = rcvid;
+					//just adding some dummy info
+					//to send back to the client when we are ready
 					strcpy(tmsg.csum.string_to_cksum,"0xaa555");
 					printf("MsgReply called \n");
+					//indicating to the client that we have the event noted
 					MsgReply(rcvid,0,&tmsg,sizeof(tmsg));
 
 				}
+		else
+		{
+			//not a intended or secure event
+		}
 
 
 		while(1)
 		{
 		printf("MsgDeliverEvent pre \n");
+		//mimic server load
 		sleep(10);
+		//delier a message periodically
 		MsgDeliverEvent(save_rcvid,&save_event);
 		printf("MsgDeliverEvent post \n");
 		}
