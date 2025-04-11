@@ -157,6 +157,27 @@ int main(int argc, char *argv[])
 		     * If it fails verification, return an error (MsgError) and
 		     * continue (wait for more clients).
 		     */
+			//check if we received a request from the client for a event notification
+			if(MsgVerifyEvent(rcvid,&recv_buf.client_msg.ev)!=-1)
+			{
+				printf("MsgVerify in \n");
+				//save the event details to send back
+				//once we are ready to send
+				save_event = recv_buf.client_msg.ev;
+				//the rcvid is the way to talk to a client
+				save_rcvid = rcvid;
+				//just adding some dummy info
+				//to send back to the client when we are ready
+				//strcpy(tmsg.csum.string_to_cksum,"0xaa555");
+				printf("MsgReply called \n");
+				//indicating to the client that we have the event noted
+				MsgReply(rcvid,0,NULL,0);
+
+			}
+			else
+			{
+				perror("MsgVerifyEvent");
+			}
 
 			status = pthread_mutex_lock(&save_data_mutex);
 			if (status != EOK)
