@@ -78,10 +78,13 @@ int main(int argc, char *argv[])
 	/* TODO: Initialize the sigevent structure (msg.ev) in the message
 	 * to be sent to the server.
 	 */
+	//assumed priority 10
+	SIGEV_PULSE_INIT(&msg.ev,self_coid,10,MY_PULSE_CODE,NULL);
+	SIGEV_MAKE_UPDATEABLE(&msg.ev);
 
 	/* TODO: register the event (msg.ev) in the message to be sent to the server.
      */
-
+	MsgRegisterEvent(&msg.ev,server_coid);
 	// send our registration message to the server
 	if (MsgSend(server_coid, &msg, sizeof(msg), NULL, 0) == -1)
 	{

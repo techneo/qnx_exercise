@@ -37,8 +37,7 @@
 #include <string.h>
 
 /* server for client-server pulsing exercise */
-union recv_msgs
-{
+union recv_msgs {
 	struct notification_request_msg client_msg;
 	struct _pulse pulse;
 	uint16_t type;
@@ -52,10 +51,9 @@ int notify_count = 0;
 pthread_mutex_t save_data_mutex; // protect access to client information between threads using it
 
 // this thread will notify every second any client that needs notification
-void * notify_thread(void * ignore);
+void* notify_thread(void *ignore);
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 	name_attach_t *att;
 	rcvid_t rcvid;
 	struct _msg_info msg_info;
@@ -63,71 +61,63 @@ int main(int argc, char *argv[])
 
 	// register our name so the client can find us
 	att = name_attach(NULL, RECV_NAME, 0);
-	if (att == NULL)
-	{
+	if (att == NULL) {
 		perror("name_attach()");
 		exit(EXIT_FAILURE);
 	}
 
 	// initialize the save data mutex
-	status = pthread_mutex_init(&save_data_mutex, NULL );
-	if (status != EOK)
-	{
+	status = pthread_mutex_init(&save_data_mutex, NULL);
+	if (status != EOK) {
 		fprintf(stderr, "pthread_mutex_init failed: %s\n", strerror(status));
 		exit(EXIT_FAILURE);
 	}
 
 	// create the client notification thread
-	status = pthread_create(NULL, NULL, notify_thread, NULL );
-	if (status != EOK)
-	{
+	status = pthread_create(NULL, NULL, notify_thread, NULL);
+	if (status != EOK) {
 		fprintf(stderr, "pthread_create failed: %s\n", strerror(status));
 		exit(EXIT_FAILURE);
 	}
 
-	while (1)
-	{
+	while (1) {
 		// wait for messages and pulses
 		rcvid = MsgReceive(att->chid, &recv_buf, sizeof(recv_buf), &msg_info);
-		if (rcvid == -1)
-		{
+		if (rcvid == -1) {
 			perror("MsgReceive failed");
 			exit(EXIT_FAILURE);
 		}
-		if (rcvid == 0)
-		{
+		if (rcvid == 0) {
 			/* we received a pulse
 			 */
-			switch (recv_buf.pulse.code)
-			{
+			switch (recv_buf.pulse.code) {
 			/* system disconnect pulse */
 			case _PULSE_CODE_DISCONNECT:
 				/* a client has disconnected.  Verify that it is
 				 * our client, and if so, clean up our saved date
 				 */
 				status = pthread_mutex_lock(&save_data_mutex);
-				if (status != EOK)
-				{
-					fprintf(stderr, "pthread_mutex_lock failed: %s\n", strerror(status));
+				if (status != EOK) {
+					fprintf(stderr, "pthread_mutex_lock failed: %s\n",
+							strerror(status));
 					exit(EXIT_FAILURE);
 				}
-				if (save_scoid == recv_buf.pulse.scoid)
-				{
+				if (save_scoid == recv_buf.pulse.scoid) {
 					// our client went away, clean up any data associate
 					// with this client
 					save_scoid = 0;
 					save_rcvid = 0;
+					notify_count=0;
 				}
 				status = pthread_mutex_unlock(&save_data_mutex);
-				if (status != EOK)
-				{
-					fprintf(stderr, "pthread_mutex_unlock failed: %s\n", strerror(status));
+				if (status != EOK) {
+					fprintf(stderr, "pthread_mutex_unlock failed: %s\n",
+							strerror(status));
 					exit(EXIT_FAILURE);
 				}
 
 				/* always do the ConnectDetach(), though */
-				if (ConnectDetach(recv_buf.pulse.scoid) == -1)
-				{
+				if (ConnectDetach(recv_buf.pulse.scoid) == -1) {
 					perror("ConnectDetach");
 				}
 				printf("disconnect from a client %#x\n", recv_buf.pulse.scoid);
@@ -135,9 +125,9 @@ int main(int argc, char *argv[])
 				/* system unblock pulse */
 			case _PULSE_CODE_UNBLOCK:
 				// did we forget to Reply to our client?
-				printf("got an unblock pulse, did you forget to reply to your client?\n");
-				if (MsgError(recv_buf.pulse.value.sival_long, -1 ) == -1)
-				{
+				printf(
+						"got an unblock pulse, did you forget to reply to your client?\n");
+				if (MsgError(recv_buf.pulse.value.sival_long, -1) == -1) {
 					perror("MsgError");
 				}
 				break;
@@ -149,68 +139,62 @@ int main(int argc, char *argv[])
 		}
 
 		/* not an error, not a pulse, therefore a message */
-		switch (recv_buf.type)
-		{
+		switch (recv_buf.type) {
 		case REQUEST_NOTIFICATIONS:
 
-		    /* TODO: verify the event in the incoming message (recv_buf.client_msg.ev).
-		     * If it fails verification, return an error (MsgError) and
-		     * continue (wait for more clients).
-		     */
-			//check if we received a request from the client for a event notification
-			if(MsgVerifyEvent(rcvid,&recv_buf.client_msg.ev)!=-1)
-			{
-				printf("MsgVerify in \n");
-				//save the event details to send back
-				//once we are ready to send
-				save_event = recv_buf.client_msg.ev;
-				//the rcvid is the way to talk to a client
-				save_rcvid = rcvid;
-				//just adding some dummy info
-				//to send back to the client when we are ready
-				//strcpy(tmsg.csum.string_to_cksum,"0xaa555");
-				printf("MsgReply called \n");
-				//indicating to the client that we have the event noted
-				MsgReply(rcvid,0,NULL,0);
+			/* TODO: verify the event in the incoming message (recv_buf.client_msg.ev).
+			 * If it fails verification, return an error (MsgError) and
+			 * continue (wait for more clients).
+			 */
 
-			}
-			else
-			{
+			//Verify the validity of the register request from client
+			if (MsgVerifyEvent(rcvid, &recv_buf.client_msg.ev) == -1) {
+				//indicate to the client
 				perror("MsgVerifyEvent");
+				MsgError(rcvid, EINVAL);
+				continue;
+
 			}
 
 			status = pthread_mutex_lock(&save_data_mutex);
-			if (status != EOK)
-			{
-				fprintf(stderr, "pthread_mutex_lock failed: %s\n", strerror(status));
+			if (status != EOK) {
+				fprintf(stderr, "pthread_mutex_lock failed: %s\n",
+						strerror(status));
 				exit(EXIT_FAILURE);
 			}
-            /* TODO: We have a valid event from the client, and
-             * will be delivering it later.  This needs the rcvid
-             * and event structure to pass to MsgDeliverEvent.
-             *
-             * Store away the event (recv_buf.client_msg.ev) and rcvid
-             * in save_event and save_rcvid.
-             */
-
+			/* TODO: We have a valid event from the client, and
+			 * will be delivering it later.  This needs the rcvid
+			 * and event structure to pass to MsgDeliverEvent.
+			 *
+			 * Store away the event (recv_buf.client_msg.ev) and rcvid
+			 * in save_event and save_rcvid.
+			 */
+			save_rcvid = rcvid;
+			save_event = recv_buf.client_msg.ev;
 			// save away the scoid so we can handle disconnect properly
 			save_scoid = msg_info.scoid;
 			status = pthread_mutex_unlock(&save_data_mutex);
-			if (status != EOK)
-			{
-				fprintf(stderr, "pthread_mutex_unlock failed: %s\n", strerror(status));
+			if (status != EOK) {
+				fprintf(stderr, "pthread_mutex_unlock failed: %s\n",
+						strerror(status));
 				exit(EXIT_FAILURE);
 			}
 
 			// TODO: don't forget to reply to the client!
+			if (MsgReply(rcvid, EOK, NULL, 0) == -1) {
+				if (errno == ESRVRFAULT) {
+					perror("MsgReply fatal");
+					exit(EXIT_FAILURE);
+				}
+				perror("MsgReply");
+			}
 
 			printf("got register message from client: %#lx\n", rcvid);
 			break;
 		default:
 			/* some other unexpected message */
 			printf("unexpected message type: %d\n", recv_buf.type);
-			if (MsgError(rcvid, ENOSYS) == -1)
-			{
+			if (MsgError(rcvid, ENOSYS) == -1) {
 				perror("MsgError");
 			}
 			break;
@@ -220,21 +204,18 @@ int main(int argc, char *argv[])
 }
 
 // this thread will notify every second any client that needs notification
-void * notify_thread(void * ignore)
-{
+void* notify_thread(void *ignore) {
 	int errornum;
-	while (1)
-	{
+	while (1) {
 		sleep(1);
 
 		errornum = pthread_mutex_lock(&save_data_mutex);
-		if (errornum != EOK)
-		{
-			fprintf(stderr, "pthread_mutex_lock failed: %s\n", strerror(errornum));
+		if (errornum != EOK) {
+			fprintf(stderr, "pthread_mutex_lock failed: %s\n",
+					strerror(errornum));
 			exit(EXIT_FAILURE);
 		}
-		if (save_rcvid)
-		{
+		if (save_rcvid) {
 			printf("deliver pulse to client %#lx\n", save_rcvid);
 
 			/* TODO: Add the call to MsgDeliverEvent() in order
@@ -242,11 +223,28 @@ void * notify_thread(void * ignore)
 			 * save_rcvid and the event is in save_event.
 			 */
 
+			//check if we can change the event
+			if (save_event.sigev_notify & SIGEV_FLAG_UPDATEABLE) {
+				save_event.sigev_value.sival_int = notify_count++;//save_event.sigev_value.sival_int+1;
+			}
+
+			if (MsgDeliverEvent(save_rcvid, &save_event)==-1)
+			{
+				//error no is clear on every function call
+				const int save_errrono=errornum;
+				perror("MsgDeliverEvent");
+				//exit only on fault
+				if (save_errrono == EFAULT)
+				{
+					exit(EXIT_FAILURE);
+				}
+			}
+
 		}
 		errornum = pthread_mutex_unlock(&save_data_mutex);
-		if (errornum != EOK)
-		{
-			fprintf(stderr, "pthread_mutex_unlock failed: %s\n", strerror(errornum));
+		if (errornum != EOK) {
+			fprintf(stderr, "pthread_mutex_unlock failed: %s\n",
+					strerror(errornum));
 			exit(EXIT_FAILURE);
 		}
 	}
