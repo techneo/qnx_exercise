@@ -88,6 +88,7 @@ int main(void) {
     pthread_cond_init(&cond,NULL);
     pthread_create(NULL,NULL,transmit,NULL);
     //pthread_create(NULL,NULL,receive,NULL);
+    //pthread_join(receive,NULL);
     //sleep(20);
     receive(NULL);
 	return EXIT_SUCCESS;
