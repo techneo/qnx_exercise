@@ -33,7 +33,7 @@ rcvid_t rcvid;
 int kb_isr;
 int count;
 
-#define EVENT_ISR 1
+#define EVENT_ISR 2
 
 int main(int argc, char **argv)
 {

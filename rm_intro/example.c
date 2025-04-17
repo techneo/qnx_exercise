@@ -45,6 +45,11 @@ dispatch_t              *dpp;
 dispatch_context_t      *ctp;
 iofunc_attr_t           ioattr;
 
+resmgr_connect_funcs_t connect_fns;
+resmgr_io_funcs_t io_fns;
+
+
+
 int     optv;                               // -v for verbose operation
 
 int main (int argc, char *argv[])
@@ -59,7 +64,7 @@ int main (int argc, char *argv[])
      * allocate and initialize a dispatch structure for use by our
      * resource manager framework
     */
-
+    //step1
     dpp = dispatch_create_channel(-1, DISPATCH_FLAG_NOLOCK);
     if (dpp == NULL) {
         perror("dispatch_create_channel");
@@ -74,17 +79,31 @@ int main (int argc, char *argv[])
      * connect_funcs, and io_funcs variables are already declared.
      *
     */
+    //step2 create a default table of functions
+    //_RESMGR_CONNECT_NFUNCS - no of entries in _resmgr_connect_funcs
+    //_RESMGR_IO_NFUNCS - no of entries in _resmgr_io_funcs
+    iofunc_func_init(_RESMGR_CONNECT_NFUNCS,&connect_fns,_RESMGR_IO_NFUNCS,&io_funcs);
+
 
     /* TODO:
      * over-ride the connect_funcs handler for open with our io_open,
      * and over-ride the io_funcs handlers for read and write with our
      * io_read and io_write handlers
      */
+    //step3 update the connect function
+    connect_fns.open = io_open;
+
+    //step4 update the io functions
+    io_fns.read = io_read;
+    io_fns.write = io_write;
+
 
 
     /* initialize our device description structure
      */
-
+    //step4
+    //S_IFCHR - Character Special
+    // 0666 permission
     iofunc_attr_init (&ioattr, S_IFCHR | 0666, NULL, NULL);
 
     /* TODO:
@@ -93,7 +112,11 @@ int main (int argc, char *argv[])
      *  functions with the resmgr library.
      *
     */
-
+    //step5
+    //ensure steps1 to 4 are done before calling this.
+    //this creates a entry in the name path
+    ret = secpol_resmgr_attach(NULL, dpp, NULL, "/dev/example", _FTYPE_ANY, 0, &connect_fns,
+    		&io_fns, &ioattr, NULL);
     if (ret == -1) {
         perror("secpol_resmgr_attach");
         exit (EXIT_FAILURE);
@@ -103,7 +126,7 @@ int main (int argc, char *argv[])
      * Allocate the dispatch context for this resource manager,
      * this is the receive-loop data.
      */
-
+    //step6
     ctp = dispatch_context_alloc (dpp);
     if (ctp == NULL)
     {
@@ -115,6 +138,7 @@ int main (int argc, char *argv[])
     secpol_transition_type (NULL, NULL, 0);
 
     /* our main operation loop */
+    //step7
     while (1) {
     	/* block waiting for client requests */
         if (dispatch_block (ctp) == NULL) {

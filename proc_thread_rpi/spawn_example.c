@@ -55,7 +55,7 @@ int main(int argc, char **argv, char **envp)
 	 * to change the path to the sleep program
 	 */
 	char *child_argv[3] = {"sleep", "30", NULL };
-	ret = posix_spawn(&pid, "/system/xbin/sleep", NULL, NULL, child_argv, envp);
+	ret = posix_spawn(&pid, "/usr/bin/sleep", NULL, NULL, child_argv, envp);
 	if(ret != EOK) {
 		fprintf(stderr, "posix_spawn failed (%d) '%s'\n", ret, strerror(ret));
 		exit(EXIT_FAILURE);
@@ -75,13 +75,13 @@ int main(int argc, char **argv, char **envp)
 	printf("Child has died, pidin should now show it as a zombie\n");
 	sleep(30);
 
-	/* get the status of the dead child and clean up the zombie */
-	pid = wait(&child_status);
-	if (pid == -1) {
-		perror("wait");
-		exit(EXIT_FAILURE);
-	}
-	printf("child process: %d, died with status %x\n", pid, child_status);
+//	/* get the status of the dead child and clean up the zombie */
+//	pid = wait(&child_status);
+//	if (pid == -1) {
+//		perror("wait");
+//		exit(EXIT_FAILURE);
+//	}
+//	printf("child process: %d, died with status %x\n", pid, child_status);
 	printf("Zombie is now gone as we've waited on the child process.\n");
 
 	sleep(30);
