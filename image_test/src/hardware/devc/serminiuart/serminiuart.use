@@ -1,3 +1,0 @@
-%C - Serial driver for Mini UART
-
-%C [options] [port[,irq]] &
