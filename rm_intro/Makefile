@@ -17,6 +17,8 @@ CFLAGS += $(DEBUG) $(TARGET) -Wall
 LDFLAGS+= $(DEBUG) $(TARGET) -lsecpol
 
 BINS = example
+BINS+= example_read
+BINS+= example_write
 
 all:	$(BINS)
 

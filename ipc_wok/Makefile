@@ -10,9 +10,9 @@ CC = qcc
 LD = qcc
 
 # specifications for target platform and compiler version
-TARGET = -Vgcc_ntox86_64
+#TARGET = -Vgcc_ntox86_64
 #TARGET = -Vgcc_ntoarmv7le
-#TARGET = -Vgcc_ntoaarch64le
+TARGET = -Vgcc_ntoaarch64le
 
 
 # compile and link options

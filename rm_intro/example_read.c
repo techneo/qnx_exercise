@@ -47,7 +47,8 @@ iofunc_attr_t           ioattr;
 
 resmgr_connect_funcs_t connect_fns;
 resmgr_io_funcs_t io_fns;
-
+int read_count;
+char reply[]="hah hah haha !!";
 
 
 int     optv;                               // -v for verbose operation
@@ -174,7 +175,7 @@ io_open (resmgr_context_t *ctp, io_open_t *msg, RESMGR_HANDLE_T *handle, void *e
     if (optv) {
         printf ("in io_open\n");
     }
-
+    read_count=0;
     return iofunc_open_default (ctp, msg, handle, extra);
 }
 
@@ -193,6 +194,8 @@ int
 io_read (resmgr_context_t *ctp, io_read_t *msg, RESMGR_OCB_T *ocb)
 {
     int status;
+    int numbutes;
+
 	
     if (optv) {
         printf ("in io_read\n");
@@ -206,8 +209,24 @@ io_read (resmgr_context_t *ctp, io_read_t *msg, RESMGR_OCB_T *ocb)
         return ENOSYS;   // causes MsgError( ctp->rcvid, ENOSYS );
     }
 
+    numbutes = strlen(reply);
+    numbutes = min(numbutes,msg->i.nbytes);
+
+    if (optv) {
+        printf ("request for %d bytes\n",msg->i.nbytes);
+    }
+
     // reply with 0 bytes, that is EOF
-    MsgReply(ctp->rcvid, 0, NULL, 0);
+    if (read_count<10)
+    {
+    	MsgReply(ctp->rcvid, numbutes, reply, numbutes);
+    	read_count++;
+    }
+    else
+    {
+    	MsgReply(ctp->rcvid, 0, NULL, 0);
+    }
+
 
 	// mark access time for update if any data was read
     if (msg->i.nbytes > 0) {
@@ -247,6 +266,7 @@ io_write (resmgr_context_t *ctp, io_write_t *msg, RESMGR_OCB_T *ocb)
     if ((msg->i.xtype & _IO_XTYPE_MASK) != _IO_XTYPE_NONE) {
         return ENOSYS;
     }
+
 
 	/* tell the client they wrote all the bytes they tried to write */
 	MsgReply(ctp->rcvid, msg->i.nbytes, NULL, 0);
